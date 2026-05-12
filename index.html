@@ -6,16 +6,136 @@
 <title>SEO Content Rewriter — Wildnet</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/docx/7.8.2/docx.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script>
-// Fallback if CDN fails
-window.addEventListener('load', () => {
-  if (typeof docx === 'undefined') {
-    const s = document.createElement('script');
-    s.src = 'https://unpkg.com/docx@7.8.2/build/index.umd.js';
-    document.head.appendChild(s);
+// docx generation — zero CDN dependency, pure browser JS
+async function generateDocx(htmlContent, keyword, url) {
+  // Strip HTML tags to get plain text with structure preserved
+  const tmp = document.createElement('div');
+  tmp.innerHTML = htmlContent;
+
+  // Build paragraphs array from DOM nodes
+  const paras = [];
+  function addPara(xml) { paras.push(xml); }
+
+  function escXml(t) {
+    return (t||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
-});
+
+  function nodeToParas(node) {
+    if (node.nodeType === 3) return; // text node handled by parent
+    const tag = node.tagName ? node.tagName.toLowerCase() : '';
+    const text = escXml(node.textContent || '');
+    if (!text.trim()) return;
+
+    if (tag === 'h1') {
+      addPara(`<w:p><w:pPr><w:pStyle w:val="Heading1"/></w:pPr><w:r><w:rPr><w:b/><w:color w:val="2563EB"/><w:sz w:val="36"/></w:rPr><w:t xml:space="preserve">${text}</w:t></w:r></w:p>`);
+    } else if (tag === 'h2') {
+      addPara(`<w:p><w:pPr><w:pStyle w:val="Heading2"/><w:spacing w:before="300" w:after="120"/></w:pPr><w:r><w:rPr><w:b/><w:color w:val="1E40AF"/><w:sz w:val="28"/></w:rPr><w:t xml:space="preserve">${text}</w:t></w:r></w:p>`);
+    } else if (tag === 'h3') {
+      addPara(`<w:p><w:pPr><w:spacing w:before="240" w:after="80"/></w:pPr><w:r><w:rPr><w:b/><w:color w:val="1D4ED8"/><w:sz w:val="24"/></w:rPr><w:t xml:space="preserve">${text}</w:t></w:r></w:p>`);
+    } else if (tag === 'li') {
+      addPara(`<w:p><w:pPr><w:pStyle w:val="ListParagraph"/><w:numPr><w:ilvl w:val="0"/><w:numId w:val="1"/></w:numPr></w:pPr><w:r><w:t xml:space="preserve">${text}</w:t></w:r></w:p>`);
+    } else if (tag === 'p' || tag === 'div') {
+      if (text.trim()) {
+        addPara(`<w:p><w:pPr><w:spacing w:after="120"/></w:pPr><w:r><w:t xml:space="preserve">${text}</w:t></w:r></w:p>`);
+      }
+    } else if (tag === 'ul' || tag === 'ol') {
+      node.querySelectorAll('li').forEach(li => {
+        const liText = escXml(li.textContent);
+        addPara(`<w:p><w:pPr><w:pStyle w:val="ListParagraph"/><w:numPr><w:ilvl w:val="0"/><w:numId w:val="1"/></w:numPr></w:pPr><w:r><w:t xml:space="preserve">${liText}</w:t></w:r></w:p>`);
+      });
+    } else {
+      node.childNodes.forEach(nodeToParas);
+    }
+  }
+
+  tmp.childNodes.forEach(nodeToParas);
+
+  // Add title header paragraphs
+  const titleParas = [
+    `<w:p><w:pPr><w:spacing w:after="80"/></w:pPr><w:r><w:rPr><w:b/><w:color w:val="2563EB"/><w:sz w:val="40"/></w:rPr><w:t>SEO Page Rewrite — ${escXml(keyword||'Content')}</w:t></w:r></w:p>`,
+    `<w:p><w:pPr><w:spacing w:after="60"/></w:pPr><w:r><w:rPr><w:b/></w:rPr><w:t>URL: </w:t></w:r><w:r><w:t>${escXml(url||'Not provided')}</w:t></w:r></w:p>`,
+    `<w:p><w:pPr><w:spacing w:after="400"/></w:pPr><w:r><w:rPr><w:b/></w:rPr><w:t>Keyword: </w:t></w:r><w:r><w:t>${escXml(keyword||'Not provided')}</w:t></w:r></w:p>`
+  ];
+
+  const allParas = [...titleParas, ...paras].join('\n');
+
+  const docXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:wpc="http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas"
+  xmlns:cx="http://schemas.microsoft.com/office/drawing/2014/chartex"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:aink="http://schemas.microsoft.com/office/drawing/2016/ink"
+  xmlns:am3d="http://schemas.microsoft.com/office/drawing/2017/model3d"
+  xmlns:o="urn:schemas-microsoft-com:office:office"
+  xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"
+  xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math"
+  xmlns:v="urn:schemas-microsoft-com:vml"
+  xmlns:wp14="http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing"
+  xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"
+  xmlns:w10="urn:schemas-microsoft-com:office:word"
+  xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+  xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml"
+  xmlns:w15="http://schemas.microsoft.com/office/word/2012/wordml"
+  xmlns:w16cex="http://schemas.microsoft.com/office/word/2018/wordml/cex"
+  xmlns:w16cid="http://schemas.microsoft.com/office/word/2016/wordml/cid"
+  xmlns:w16="http://schemas.microsoft.com/office/word/2018/wordml"
+  xmlns:w16sdtdh="http://schemas.microsoft.com/office/word/2020/wordml/sdtdatahash"
+  xmlns:w16se="http://schemas.microsoft.com/office/word/2015/wordml/symex"
+  xmlns:wpg="http://schemas.microsoft.com/office/word/2010/wordprocessingGroup"
+  xmlns:wpi="http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+  xmlns:wne="http://schemas.microsoft.com/office/word/2006/wordml"
+  xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape"
+  mc:Ignorable="w14 w15 w16se w16cid w16 w16cex w16sdtdh wp14">
+<w:body>${allParas}<w:sectPr><w:pgSz w:w="12240" w:h="15840"/><w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440"/></w:sectPr></w:body>
+</w:document>`;
+
+  const styleXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:style w:type="paragraph" w:styleId="Normal"><w:name w:val="Normal"/><w:rPr><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr></w:style>
+  <w:style w:type="paragraph" w:styleId="Heading1"><w:name w:val="heading 1"/><w:basedOn w:val="Normal"/><w:rPr><w:b/><w:sz w:val="36"/></w:rPr></w:style>
+  <w:style w:type="paragraph" w:styleId="Heading2"><w:name w:val="heading 2"/><w:basedOn w:val="Normal"/><w:rPr><w:b/><w:sz w:val="28"/></w:rPr></w:style>
+  <w:style w:type="paragraph" w:styleId="ListParagraph"><w:name w:val="List Paragraph"/><w:basedOn w:val="Normal"/><w:pPr><w:ind w:left="720"/></w:pPr></w:style>
+</w:styles>`;
+
+  const numberingXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:numbering xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:abstractNum w:abstractNumId="0"><w:lvl w:ilvl="0"><w:start w:val="1"/><w:numFmt w:val="bullet"/><w:lvlText w:val="•"/><w:lvlJc w:val="left"/><w:pPr><w:ind w:left="720" w:hanging="360"/></w:pPr></w:lvl></w:abstractNum>
+  <w:num w:numId="1"><w:abstractNumId w:val="0"/></w:num>
+</w:numbering>`;
+
+  const relsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/numbering" Target="numbering.xml"/>
+</Relationships>`;
+
+  const appRelsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+</Relationships>`;
+
+  const contentTypesXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+  <Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>
+  <Override PartName="/word/numbering.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml"/>
+</Types>`;
+
+  // Build zip using JSZip (loaded inline below)
+  const zip = new JSZip();
+  zip.file('[Content_Types].xml', contentTypesXml);
+  zip.file('_rels/.rels', appRelsXml);
+  zip.file('word/document.xml', docXml);
+  zip.file('word/styles.xml', styleXml);
+  zip.file('word/numbering.xml', numberingXml);
+  zip.file('word/_rels/document.xml.rels', relsXml);
+
+  const blob = await zip.generateAsync({ type: 'blob', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+  return blob;
+}
 </script>
 <style>
   :root {
@@ -444,8 +564,8 @@ window.addEventListener('load', () => {
 
   <!-- Version Banner -->
   <div style="background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.3);border-radius:8px;padding:8px 16px;margin-bottom:1.5rem;display:flex;align-items:center;justify-content:space-between;font-size:12px;">
-    <span style="color:var(--green);font-weight:700;">✅ VERSION 4.0 — Auto WP Publish · Proofread Before Live · HTML Output · docx Fixed</span>
-    <span style="color:var(--muted);font-family:monospace;">Built: 12 May 2026</span>
+    <span style="color:var(--green);font-weight:700;">✅ VERSION 4.1 — docx via JSZip · Auto Page ID Lookup · No Fetch Required to Publish</span>
+    <span style="color:var(--muted);font-family:monospace;">Built: 12 May 2026 · 19:45</span>
   </div>
 
   <!-- API Key -->
@@ -722,9 +842,23 @@ function showPublishBanner(success, msg) {
 }
 
 async function pushToWP(site, user, pass, content) {
-  if (!wpPageId) throw new Error('No page ID. Use "Fetch Live Page Content" first.');
   const creds = btoa(`${user}:${pass}`);
   const headers = { 'Content-Type': 'application/json', 'Authorization': `Basic ${creds}` };
+
+  // If no page ID cached, look it up from the URL slug
+  if (!wpPageId) {
+    const pageUrl = document.getElementById('pageUrl').value.trim();
+    if (!pageUrl) throw new Error('No page URL entered. Enter the page URL and click "⬇ Fetch Live Page Content" first.');
+    const slug = new URL(pageUrl).pathname.replace(/\/$/, '').split('/').pop();
+    for (const endpoint of ['pages', 'posts']) {
+      const res = await fetch(`${site}/wp-json/wp/v2/${endpoint}?slug=${slug}&_fields=id`, { headers });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.length > 0) { wpPageId = data[0].id; break; }
+      }
+    }
+    if (!wpPageId) throw new Error(`Could not find page with slug "${slug}". Make sure the URL is correct and credentials have access.`);
+  }
 
   for (const endpoint of ['pages', 'posts']) {
     const res = await fetch(`${site}/wp-json/wp/v2/${endpoint}/${wpPageId}`, {
@@ -1098,152 +1232,17 @@ async function downloadDocx() {
   btn.disabled = true;
 
   try {
-    const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, LevelFormat } = docx;
-
-    const lines = finalContent.split('\n');
-    const children = [];
-
-    const numbering = {
-      config: [
-        {
-          reference: 'bullets',
-          levels: [{
-            level: 0, format: LevelFormat.BULLET, text: '\u2022',
-            alignment: AlignmentType.LEFT,
-            style: { paragraph: { indent: { left: 720, hanging: 360 } } }
-          }]
-        }
-      ]
-    };
-
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if (!trimmed) {
-        children.push(new Paragraph({ children: [new TextRun('')], spacing: { after: 60 } }));
-        continue;
-      }
-
-      // Detect headings by common patterns
-      if (trimmed.startsWith('# ')) {
-        children.push(new Paragraph({
-          heading: HeadingLevel.HEADING_1,
-          children: [new TextRun({ text: trimmed.replace(/^# /, ''), bold: true })]
-        }));
-      } else if (trimmed.startsWith('## ')) {
-        children.push(new Paragraph({
-          heading: HeadingLevel.HEADING_2,
-          children: [new TextRun({ text: trimmed.replace(/^## /, ''), bold: true })]
-        }));
-      } else if (trimmed.startsWith('### ')) {
-        children.push(new Paragraph({
-          heading: HeadingLevel.HEADING_3,
-          children: [new TextRun({ text: trimmed.replace(/^### /, '') })]
-        }));
-      } else if (trimmed.match(/^[-•*]\s+/)) {
-        children.push(new Paragraph({
-          numbering: { reference: 'bullets', level: 0 },
-          children: [new TextRun({ text: trimmed.replace(/^[-•*]\s+/, '') })]
-        }));
-      } else if (trimmed.match(/^\d+\.\s+[A-Z]/)) {
-        // numbered section headers
-        children.push(new Paragraph({
-          heading: HeadingLevel.HEADING_2,
-          children: [new TextRun({ text: trimmed, bold: true })]
-        }));
-      } else if (trimmed.match(/^[A-Z\s&]+$/) && trimmed.length > 5 && trimmed.length < 60) {
-        // ALL CAPS lines = section headers
-        children.push(new Paragraph({
-          heading: HeadingLevel.HEADING_1,
-          children: [new TextRun({ text: trimmed })]
-        }));
-      } else if (trimmed.startsWith('**') && trimmed.endsWith('**')) {
-        children.push(new Paragraph({
-          children: [new TextRun({ text: trimmed.replace(/\*\*/g, ''), bold: true })],
-          spacing: { before: 120, after: 60 }
-        }));
-      } else {
-        // Smart bold detection for inline **text**
-        const parts = trimmed.split(/(\*\*[^*]+\*\*)/g);
-        const runs = parts.map(p => {
-          if (p.startsWith('**') && p.endsWith('**')) {
-            return new TextRun({ text: p.replace(/\*\*/g, ''), bold: true });
-          }
-          return new TextRun({ text: p });
-        });
-        children.push(new Paragraph({ children: runs, spacing: { after: 80 } }));
-      }
-    }
-
+    if (typeof JSZip === 'undefined') throw new Error('JSZip not loaded yet — please wait a moment and try again.');
     const keyword = document.getElementById('focusKeyword').value.trim();
     const url = document.getElementById('pageUrl').value.trim();
-
-    children.unshift(
-      new Paragraph({
-        heading: HeadingLevel.HEADING_1,
-        children: [new TextRun('SEO Page Rewrite — ' + (keyword || 'Content'))]
-      }),
-      new Paragraph({
-        children: [
-          new TextRun({ text: 'URL: ', bold: true }),
-          new TextRun(url || 'Not provided')
-        ],
-        spacing: { after: 60 }
-      }),
-      new Paragraph({
-        children: [
-          new TextRun({ text: 'Keyword: ', bold: true }),
-          new TextRun(keyword || 'Not provided')
-        ],
-        spacing: { after: 360 }
-      })
-    );
-
-    const doc = new Document({
-      numbering,
-      styles: {
-        default: { document: { run: { font: 'Calibri', size: 24 } } },
-        paragraphStyles: [
-          {
-            id: 'Heading1', name: 'Heading 1', basedOn: 'Normal', next: 'Normal', quickFormat: true,
-            run: { size: 36, bold: true, font: 'Calibri', color: '2563EB' },
-            paragraph: { spacing: { before: 360, after: 180 }, outlineLevel: 0 }
-          },
-          {
-            id: 'Heading2', name: 'Heading 2', basedOn: 'Normal', next: 'Normal', quickFormat: true,
-            run: { size: 28, bold: true, font: 'Calibri', color: '1E40AF' },
-            paragraph: { spacing: { before: 240, after: 120 }, outlineLevel: 1 }
-          },
-          {
-            id: 'Heading3', name: 'Heading 3', basedOn: 'Normal', next: 'Normal', quickFormat: true,
-            run: { size: 24, bold: true, font: 'Calibri', color: '1D4ED8' },
-            paragraph: { spacing: { before: 180, after: 90 }, outlineLevel: 2 }
-          }
-        ]
-      },
-      sections: [{
-        properties: {
-          page: {
-            size: { width: 12240, height: 15840 },
-            margin: { top: 1440, right: 1440, bottom: 1440, left: 1440 }
-          }
-        },
-        children
-      }]
-    });
-
-    const buffer = await Packer.toBuffer(doc);
-    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+    const blob = await generateDocx(finalContent, keyword, url);
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
     link.download = 'seo-page-rewrite.docx';
     link.click();
     URL.revokeObjectURL(link.href);
-
     btn.textContent = '✓ Downloaded!';
-    setTimeout(() => {
-      btn.textContent = '↓ Download .docx';
-      btn.disabled = false;
-    }, 2000);
+    setTimeout(() => { btn.textContent = '↓ Download .docx'; btn.disabled = false; }, 2000);
   } catch (err) {
     alert('Download error: ' + err.message);
     btn.textContent = '↓ Download .docx';
