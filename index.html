@@ -542,7 +542,7 @@
       <div class="prog-step" id="ps2"><div class="prog-dot"></div> Opus analyzing top competitor content strategies...</div>
       <div class="prog-step" id="ps3"><div class="prog-dot"></div> Opus identifying deep content gaps and opportunities...</div>
       <div class="prog-step" id="ps4"><div class="prog-dot"></div> Opus rewriting your full page with research-backed intelligence...</div>
-      <div class="prog-step" id="ps5"><div class="prog-dot"></div> Formatting output and preparing .docx export...</div>
+      <div class="prog-step" id="ps5"><div class="prog-dot"></div> Publishing rewritten content to your live WordPress page...</div>
     </div>
   </div>
 
@@ -559,13 +559,17 @@
     </div>
 
     <div class="tabs">
-      <button class="tab active" onclick="switchTab('content', this)">Rewritten Page</button>
+      <button class="tab active" onclick="switchTab('content', this)">Preview</button>
+      <button class="tab" onclick="switchTab('raw', this)">Raw HTML</button>
       <button class="tab" onclick="switchTab('research', this)">SERP Research</button>
       <button class="tab" onclick="switchTab('gaps', this)">Content Gaps</button>
     </div>
 
     <div id="tab-content">
-      <div class="output-box" id="outputBox"></div>
+      <div class="output-box" id="outputBox" style="white-space:normal;"></div>
+    </div>
+    <div id="tab-raw" style="display:none;">
+      <div class="output-box" id="outputRaw"></div>
     </div>
     <div id="tab-research" style="display:none;">
       <div class="research-box" id="researchBox"></div>
@@ -681,19 +685,84 @@ async function fetchPageContent() {
   }
 }
 
+async function autoPublishToWP(site, user, pass, content) {
+  const btn = document.getElementById('publishBtn');
+  try {
+    await pushToWP(site, user, pass, content);
+    btn.textContent = '✅ Published Live!';
+    btn.style.background = 'rgba(52,211,153,0.25)';
+    btn.style.color = 'var(--green)';
+    // Show a success banner
+    showPublishBanner(true, `✅ Page successfully published to WordPress live!`);
+    setTimeout(() => {
+      btn.textContent = '🌐 Re-publish to WordPress';
+      btn.disabled = false;
+      btn.style.background = '';
+    }, 4000);
+  } catch (err) {
+    btn.textContent = '🌐 Publish to WordPress';
+    btn.disabled = false;
+    showPublishBanner(false, '✗ Auto-publish failed: ' + err.message + ' — Click the button to retry.');
+  }
+}
+
+function showPublishBanner(success, msg) {
+  let banner = document.getElementById('publishBanner');
+  if (!banner) {
+    banner = document.createElement('div');
+    banner.id = 'publishBanner';
+    banner.style.cssText = 'margin-top:10px;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:500;';
+    document.getElementById('outputSection').insertBefore(banner, document.getElementById('outputSection').firstChild);
+  }
+  if (success === true) {
+    banner.style.background = 'rgba(52,211,153,0.1)';
+    banner.style.border = '1px solid rgba(52,211,153,0.3)';
+    banner.style.color = 'var(--green)';
+  } else if (success === false) {
+    banner.style.background = 'rgba(248,113,113,0.1)';
+    banner.style.border = '1px solid rgba(248,113,113,0.3)';
+    banner.style.color = 'var(--red)';
+  } else {
+    banner.style.background = 'rgba(124,106,247,0.08)';
+    banner.style.border = '1px solid rgba(124,106,247,0.25)';
+    banner.style.color = 'var(--accent2)';
+  }
+  banner.textContent = msg;
+  banner.style.display = 'block';
+}
+
+async function pushToWP(site, user, pass, content) {
+  if (!wpPageId) throw new Error('No page ID. Use "Fetch Live Page Content" first.');
+  const creds = btoa(`${user}:${pass}`);
+  const headers = { 'Content-Type': 'application/json', 'Authorization': `Basic ${creds}` };
+
+  for (const endpoint of ['pages', 'posts']) {
+    const res = await fetch(`${site}/wp-json/wp/v2/${endpoint}/${wpPageId}`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ content: { raw: content, rendered: content } })
+    });
+    if (res.ok) return await res.json();
+    if (res.status !== 404) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || `HTTP ${res.status}`);
+    }
+  }
+  throw new Error('Page not found via pages or posts endpoint.');
+}
+
 async function publishToWP() {
   if (!finalContent) return;
   const wpSite = document.getElementById('wpSite').value.trim();
   const wpUser = document.getElementById('wpUser').value.trim();
   const wpPass = document.getElementById('wpPass').value.trim();
-  const url = document.getElementById('pageUrl').value.trim();
 
   if (!wpSite || !wpUser || !wpPass) {
-    alert('Please fill in WordPress Site URL, Username, and Application Password in the WP credentials section above.');
+    alert('Switch to "🌐 Fetch URL & Update Live Page" mode and fill in your WordPress credentials first.');
     return;
   }
   if (!wpPageId) {
-    alert('No page ID detected. Please use "Fetch Live Page Content" first so the tool knows which page to update.');
+    alert('Click "⬇ Fetch Live Page Content" first — this tells the tool which page to update.');
     return;
   }
 
@@ -702,59 +771,17 @@ async function publishToWP() {
   btn.textContent = '⏳ Publishing...';
 
   try {
-    // Convert plain text content to basic HTML paragraphs
-    const htmlContent = finalContent
-      .split('\n\n')
-      .map(block => {
-        const trimmed = block.trim();
-        if (!trimmed) return '';
-        if (trimmed.startsWith('# ')) return `<h1>${trimmed.replace(/^# /, '')}</h1>`;
-        if (trimmed.startsWith('## ')) return `<h2>${trimmed.replace(/^## /, '')}</h2>`;
-        if (trimmed.startsWith('### ')) return `<h3>${trimmed.replace(/^### /, '')}</h3>`;
-        if (trimmed.startsWith('- ') || trimmed.startsWith('• ')) {
-          const items = trimmed.split('\n').filter(l => l.trim()).map(l => `<li>${l.replace(/^[-•]\s+/, '')}</li>`).join('');
-          return `<ul>${items}</ul>`;
-        }
-        return `<p>${trimmed.replace(/\n/g, '<br>')}</p>`;
-      })
-      .filter(Boolean)
-      .join('\n');
-
-    const siteBase = wpSite || new URL(url).origin;
-    const creds = btoa(`${wpUser}:${wpPass}`);
-
-    // Try pages first, then posts
-    let updated = false;
-    for (const endpoint of ['pages', 'posts']) {
-      const res = await fetch(`${siteBase}/wp-json/wp/v2/${endpoint}/${wpPageId}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Basic ${creds}`
-        },
-        body: JSON.stringify({ content: htmlContent })
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        updated = true;
-        btn.textContent = '✓ Published!';
-        btn.style.background = 'rgba(52,211,153,0.25)';
-        setTimeout(() => {
-          btn.textContent = '🌐 Publish to WordPress';
-          btn.disabled = false;
-          btn.style.background = '';
-        }, 3000);
-        break;
-      }
-    }
-
-    if (!updated) {
-      throw new Error('Could not update the page. Check that your Application Password has edit permissions.');
-    }
-
+    await pushToWP(wpSite, wpUser, wpPass, finalContent);
+    btn.textContent = '✅ Published Live!';
+    btn.style.background = 'rgba(52,211,153,0.25)';
+    showPublishBanner(true, '✅ Content successfully updated on your live WordPress page!');
+    setTimeout(() => {
+      btn.textContent = '🌐 Re-publish to WordPress';
+      btn.disabled = false;
+      btn.style.background = '';
+    }, 4000);
   } catch (err) {
-    alert('Publish error: ' + err.message);
+    showPublishBanner(false, '✗ Publish failed: ' + err.message);
     btn.textContent = '🌐 Publish to WordPress';
     btn.disabled = false;
   }
@@ -774,6 +801,7 @@ function switchTab(tab, btn) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   btn.classList.add('active');
   document.getElementById('tab-content').style.display = tab === 'content' ? '' : 'none';
+  document.getElementById('tab-raw').style.display = tab === 'raw' ? '' : 'none';
   document.getElementById('tab-research').style.display = tab === 'research' ? '' : 'none';
   document.getElementById('tab-gaps').style.display = tab === 'gaps' ? '' : 'none';
 }
@@ -961,23 +989,36 @@ For each gap, explain WHY it matters for rankings.`,
       : '';
 
     const rewriteResult = await callClaude(apiKey,
-      `You are the world's best SEO content strategist and copywriter, specializing in service pages for digital marketing agencies in India. You have 15+ years of experience writing content that consistently ranks on page 1. You understand search intent deeply, write with authority, and produce content that both Google and real humans love. You never write generic AI-sounding copy — every line you write is specific, useful, and compelling.`,
-      `You are about to do the most important step: rewrite this SEO service page to outrank every competitor for "${keyword}".
+      `You are the world's #1 SEO content strategist and conversion copywriter for digital marketing agencies in India. You have ghostwritten content that ranks #1 on Google for hundreds of competitive keywords. You write with a sharp editorial voice — specific, confident, zero fluff. Every sentence earns its place. You deeply understand E-E-A-T (Experience, Expertise, Authoritativeness, Trustworthiness) and write content that satisfies both search engines and real humans making buying decisions.
 
-You have done the research. Now execute the rewrite with full intelligence and creativity.
+OUTPUT FORMAT: You must output clean HTML only. Use proper semantic HTML tags:
+- <h1> for page title (only once)
+- <h2> for main section headings
+- <h3> for subsection headings  
+- <p> for paragraphs
+- <ul><li> for bullet lists
+- <ol><li> for numbered lists
+- <strong> for emphasis
+- <div class="faq-item"><h3 class="faq-q">Q: ...</h3><p class="faq-a">A: ...</p></div> for FAQs
+No markdown. No backticks. No explanatory text outside the HTML. Output ONLY the HTML content for the page body.`,
+      `MISSION: Rewrite this page to rank #1 for "${keyword}" and convert visitors into clients. This is your masterpiece — write it like your reputation depends on it.
 
-━━━ RESEARCH CONTEXT ━━━
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DEEP RESEARCH CONTEXT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-SERP INSIGHTS:
+SERP INTELLIGENCE (what Google rewards for this keyword):
 ${serpResult}
 
-COMPETITOR ANALYSIS:
+COMPETITOR WEAKNESSES (what top 5 pages do wrong — exploit these):
 ${competitorResult}
 
-CONTENT GAPS IDENTIFIED:
+CONTENT GAPS (specific holes to fill to win rankings):
 ${gapResult}
 
-━━━ CURRENT PAGE TO REWRITE ━━━
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ORIGINAL PAGE (keep exact structure, rewrite every word)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 KEYWORD: ${keyword}
 URL: ${url || 'Not provided'}
@@ -985,48 +1026,59 @@ URL: ${url || 'Not provided'}
 ${content}
 ${newSections}
 
-━━━ REWRITING INSTRUCTIONS ━━━
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+MANDATORY REWRITING RULES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-STRUCTURE:
-- Keep the EXACT same section order and format as the original
-- Every section that exists must remain — do not drop any
-- Add requested new sections in the same format/style
-- Keep meta title, meta description, all section headers
+STRUCTURE (non-negotiable):
+✓ Keep every section from the original — same order, same structure
+✓ Add any requested new sections using the same style
+✓ Preserve meta title, meta description, all H2 section headers
+✓ Keep the same number of services, FAQs, process steps — just rewrite them
 
-COPY QUALITY:
-- Every headline must be benefit-driven, specific, and compelling — not generic
-- Subheadlines must earn their place — one strong insight per subheadline
-- Body copy: confident, direct, human — no corporate waffle
-- Bullet points: outcomes and benefits only, never vague features
-- Each service section must have a unique angle — no repeated structures
+COPY STANDARDS (every line must pass this test):
+✓ Would a CMO be proud to publish this? If not, rewrite it
+✓ Headlines: specific benefit + emotional hook, never generic ("We Do SEO" = fail, "Rank #1 in 90 Days or We Work for Free" = win)
+✓ Body copy: confident assertions, not hedging. "We deliver" not "We try to deliver"  
+✓ Bullet points: concrete outcomes only ("Cut cost-per-lead by 40%") never vague features ("Advanced SEO techniques")
+✓ Each of the 10-12 service sections must open with a DIFFERENT angle — no copy-paste structure
+✓ Zero filler phrases: never use "In today's digital landscape", "In conclusion", "Look no further", "cutting-edge", "leverage", "synergy"
+✓ CTAs: each one unique and specific to the section context, not the same "Get Free Quote" everywhere
 
-SEO INTELLIGENCE:
-- Use "${keyword}" naturally — maximum 4 times across the entire page
-- Weave in semantic keywords and LSI terms from the SERP research naturally
-- Write FAQ answers that are genuinely helpful, 4-6 sentences each
-- Structure content so Google can extract featured snippets from FAQ answers
-- Use the competitor gaps to differentiate — say what others don't
+SEO PRECISION:
+✓ Use "${keyword}" exactly 3-4 times — in H1, one H2, naturally in body, and FAQ
+✓ Weave in 15-20 semantic/LSI terms from the SERP research — naturally, never forced
+✓ FAQ answers: 4-6 sentences each, structured so Google extracts them as featured snippets (start with a direct 1-sentence answer, then expand)
+✓ Include specific numbers, stats, timeframes throughout (not vague claims)
 
-TRUST & CONVERSION:
-- Add specific trust signals (19+ years, 10,000+ keywords etc.) where relevant
-- Vary CTAs across sections — each CTA should feel unique and specific
-- Every section should move the reader closer to contacting Wildnet
+WILDNET-SPECIFIC TRUST SIGNALS (use these naturally):
+✓ 19+ years in digital marketing
+✓ 10,000+ keywords ranked on page 1
+✓ 500+ clients served across 30+ industries
+✓ ISO-certified processes
+✓ Google Premier Partner status
+✓ Offices in Noida, Delhi NCR
 
-OUTPUT: Write the complete rewritten page from top to bottom. No summaries, no truncation — the full page.`,
-      12000
+CONVERSION ENGINEERING:
+✓ Every section closes with a micro-CTA or proof point that moves the reader forward
+✓ Build urgency naturally (limited capacity, competitive keyword windows)
+✓ Address the #1 objection in every service section: "Why Wildnet over an in-house team or cheaper agency?"
+
+OUTPUT: Full HTML page body, top to bottom, no truncation. Every section complete. This is going live on a real website.`,
+      14000
     );
     finalContent = rewriteResult;
 
-    // ── STEP 5: Done ─────────────────────────────────────────────────────
+    // ── STEP 5: Publish to WordPress (auto if credentials present) ────────
     setProgress(5);
-    document.getElementById('outputBox').textContent = finalContent;
+    document.getElementById('outputBox').innerHTML = finalContent;
+    document.getElementById('outputRaw').textContent = finalContent;
     document.getElementById('outputSection').style.display = 'block';
     document.getElementById('progressWrap').style.display = 'none';
+    document.getElementById('publishBtn').style.display = 'flex';
 
-    // Show publish button if in WP mode
-    if (currentMode === 'wp') {
-      document.getElementById('publishBtn').style.display = 'flex';
-    }
+    // Show proofread reminder banner
+    showPublishBanner(null, '📄 Content ready! Download .docx to proofread, then click "Publish to WordPress" when you\'re happy.');
 
     btn.disabled = false;
     btn.textContent = '⚡ Rewrite Again';
@@ -1041,7 +1093,8 @@ OUTPUT: Write the complete rewritten page from top to bottom. No summaries, no t
 }
 
 function copyOutput() {
-  navigator.clipboard.writeText(finalContent).then(() => {
+  const raw = document.getElementById('outputRaw').textContent || finalContent;
+  navigator.clipboard.writeText(raw).then(() => {
     const btn = event.target;
     btn.textContent = '✓ Copied!';
     setTimeout(() => btn.textContent = '⎘ Copy', 2000);
