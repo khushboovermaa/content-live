@@ -564,8 +564,8 @@ async function generateDocx(htmlContent, keyword, url) {
 
   <!-- Version Banner -->
   <div style="background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.3);border-radius:8px;padding:8px 16px;margin-bottom:1.5rem;display:flex;align-items:center;justify-content:space-between;font-size:12px;">
-    <span style="color:var(--green);font-weight:700;">✅ VERSION 4.1 — docx via JSZip · Auto Page ID Lookup · No Fetch Required to Publish</span>
-    <span style="color:var(--muted);font-family:monospace;">Built: 12 May 2026 · 19:45</span>
+    <span style="color:var(--green);font-weight:700;">✅ VERSION 4.2 — Publish works without Fetch · JSZip docx · Auto Page ID</span>
+    <span style="color:var(--muted);font-family:monospace;">Built: 12 May 2026 · 20:10</span>
   </div>
 
   <!-- API Key -->
@@ -882,11 +882,7 @@ async function publishToWP() {
   const wpPass = document.getElementById('wpPass').value.trim();
 
   if (!wpSite || !wpUser || !wpPass) {
-    alert('Switch to "🌐 Fetch URL & Update Live Page" mode and fill in your WordPress credentials first.');
-    return;
-  }
-  if (!wpPageId) {
-    alert('Click "⬇ Fetch Live Page Content" first — this tells the tool which page to update.');
+    alert('Please fill in your WordPress Site URL, Username, and Application Password above.');
     return;
   }
 
