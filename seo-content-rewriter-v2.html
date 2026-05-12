@@ -1,0 +1,1212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SEO Content Rewriter — Wildnet</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/docx/8.5.0/docx.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0d0d0f;
+    --surface: #141416;
+    --surface2: #1c1c1f;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.12);
+    --accent: #7c6af7;
+    --accent2: #a78bfa;
+    --text: #f0f0f2;
+    --muted: #888890;
+    --muted2: #555560;
+    --green: #34d399;
+    --amber: #fbbf24;
+    --red: #f87171;
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* grid bg */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(124,106,247,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(124,106,247,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrap {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 3rem 1.5rem 6rem;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* header */
+  .header { text-align: center; margin-bottom: 3rem; }
+  .badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(124,106,247,0.12);
+    border: 1px solid rgba(124,106,247,0.25);
+    border-radius: 100px;
+    padding: 4px 14px;
+    font-size: 12px;
+    color: var(--accent2);
+    margin-bottom: 1.25rem;
+    letter-spacing: 0.04em;
+  }
+  .badge::before { content: '◆'; font-size: 8px; }
+  h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(2rem, 5vw, 3.2rem);
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    background: linear-gradient(135deg, #fff 0%, var(--accent2) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 0.75rem;
+  }
+  .subtitle { color: var(--muted); font-size: 15px; max-width: 500px; margin: 0 auto; }
+
+  /* pipeline */
+  .pipeline {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin-bottom: 2.5rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem 1.25rem;
+    overflow-x: auto;
+  }
+  .pip-step {
+    display: flex; align-items: center; gap: 8px;
+    white-space: nowrap;
+    font-size: 12px; color: var(--muted);
+    font-weight: 500;
+  }
+  .pip-step.active { color: var(--accent2); }
+  .pip-step.done { color: var(--green); }
+  .pip-dot {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; flex-shrink: 0;
+  }
+  .pip-step.active .pip-dot { background: rgba(124,106,247,0.2); border-color: var(--accent); color: var(--accent2); }
+  .pip-step.done .pip-dot { background: rgba(52,211,153,0.15); border-color: var(--green); color: var(--green); }
+  .pip-arrow { color: var(--muted2); padding: 0 10px; font-size: 12px; flex-shrink: 0; }
+
+  /* card */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+    transition: border-color 0.2s;
+  }
+  .card:focus-within { border-color: var(--border2); }
+  .card-header {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 1rem;
+  }
+  .card-num {
+    width: 26px; height: 26px; border-radius: 50%;
+    background: rgba(124,106,247,0.15);
+    border: 1px solid rgba(124,106,247,0.3);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 600; color: var(--accent2);
+    flex-shrink: 0;
+  }
+  .card-title { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 600; }
+  .card-desc { font-size: 12px; color: var(--muted); margin-left: auto; }
+
+  /* inputs */
+  input[type="text"], textarea {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    padding: 10px 14px;
+    outline: none;
+    transition: border-color 0.2s;
+    resize: vertical;
+  }
+  input[type="text"]:focus, textarea:focus { border-color: rgba(124,106,247,0.4); }
+  input[type="text"]::placeholder, textarea::placeholder { color: var(--muted2); }
+  textarea { min-height: 180px; line-height: 1.7; }
+
+  /* new sections grid */
+  .sections-grid {
+    display: flex; flex-wrap: wrap; gap: 8px;
+  }
+  .sec-chip {
+    padding: 5px 12px;
+    border-radius: 100px;
+    border: 1px solid var(--border2);
+    font-size: 12px; color: var(--muted);
+    cursor: pointer;
+    transition: all 0.15s;
+    background: var(--surface2);
+    user-select: none;
+  }
+  .sec-chip:hover { border-color: var(--accent); color: var(--accent2); }
+  .sec-chip.selected {
+    background: rgba(124,106,247,0.15);
+    border-color: var(--accent);
+    color: var(--accent2);
+  }
+
+  /* run button */
+  .run-btn {
+    width: 100%;
+    padding: 14px 24px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius);
+    font-family: 'Syne', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: 0.02em;
+    transition: opacity 0.2s, transform 0.1s;
+    margin-top: 0.5rem;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .run-btn:hover { opacity: 0.88; }
+  .run-btn:active { transform: scale(0.99); }
+  .run-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+  /* progress */
+  .progress-wrap { display: none; margin-top: 1.5rem; }
+  .progress-bar-bg {
+    height: 3px; background: var(--surface2);
+    border-radius: 10px; margin-bottom: 0.75rem; overflow: hidden;
+  }
+  .progress-bar {
+    height: 100%; width: 0%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 10px;
+    transition: width 0.4s ease;
+  }
+  .progress-steps { display: flex; flex-direction: column; gap: 6px; }
+  .prog-step {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12px; color: var(--muted);
+  }
+  .prog-step.active { color: var(--accent2); }
+  .prog-step.done { color: var(--green); }
+  .prog-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--muted2); flex-shrink: 0;
+  }
+  .prog-step.active .prog-dot { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
+  .prog-step.done .prog-dot { background: var(--green); }
+
+  /* output */
+  .output-section { display: none; margin-top: 1.5rem; }
+  .output-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 0.75rem;
+  }
+  .output-title { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; }
+  .output-actions { display: flex; gap: 8px; }
+  .action-btn {
+    padding: 6px 14px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border2);
+    background: transparent;
+    color: var(--muted);
+    font-size: 12px; font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: 'DM Sans', sans-serif;
+    display: flex; align-items: center; gap: 5px;
+  }
+  .action-btn:hover { background: var(--surface2); color: var(--text); }
+  .action-btn.primary-action {
+    background: rgba(124,106,247,0.15);
+    border-color: var(--accent);
+    color: var(--accent2);
+  }
+  .action-btn.primary-action:hover { background: rgba(124,106,247,0.25); }
+
+  .output-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    font-size: 13px;
+    line-height: 1.9;
+    color: #ccc;
+    white-space: pre-wrap;
+    max-height: 600px;
+    overflow-y: auto;
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  /* tabs */
+  .tabs { display: flex; gap: 4px; margin-bottom: 0.75rem; }
+  .tab {
+    padding: 5px 14px; border-radius: var(--radius-sm);
+    font-size: 12px; cursor: pointer;
+    border: 1px solid transparent;
+    color: var(--muted); background: transparent;
+    font-family: 'DM Sans', sans-serif;
+    transition: all 0.15s;
+  }
+  .tab.active {
+    background: var(--surface2);
+    border-color: var(--border2);
+    color: var(--text);
+  }
+
+  /* research panel */
+  .research-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.25rem;
+    font-size: 12px;
+    line-height: 1.8;
+    color: var(--muted);
+    white-space: pre-wrap;
+    max-height: 320px;
+    overflow-y: auto;
+  }
+
+  /* api key section */
+  .api-row {
+    display: flex; gap: 8px; align-items: center;
+    background: rgba(251,191,36,0.06);
+    border: 1px solid rgba(251,191,36,0.2);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    margin-bottom: 1.5rem;
+  }
+  .api-icon { font-size: 16px; }
+  .api-note { font-size: 12px; color: var(--amber); flex: 1; }
+  .api-input {
+    width: 220px !important;
+    font-size: 12px !important;
+    padding: 6px 10px !important;
+    background: rgba(0,0,0,0.3) !important;
+    border-color: rgba(251,191,36,0.2) !important;
+  }
+
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 1.5rem 0;
+  }
+
+  /* scrollbar */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--muted2); border-radius: 4px; }
+
+  /* mode toggle */
+  .mode-toggle {
+    display: flex; gap: 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 4px;
+    margin-bottom: 1.5rem;
+  }
+  .mode-btn {
+    flex: 1; padding: 9px 16px;
+    border-radius: calc(var(--radius) - 4px);
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex; align-items: center; justify-content: center; gap: 7px;
+  }
+  .mode-btn.active {
+    background: var(--accent);
+    color: #fff;
+    box-shadow: 0 2px 12px rgba(124,106,247,0.35);
+  }
+  .mode-btn:not(.active):hover { color: var(--text); }
+
+  /* wp section */
+  .wp-row {
+    display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+    background: rgba(52,211,153,0.05);
+    border: 1px solid rgba(52,211,153,0.2);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    margin-bottom: 1rem;
+  }
+  .wp-icon { font-size: 16px; }
+  .wp-note { font-size: 12px; color: var(--green); flex: 1; min-width: 120px; }
+  .wp-input {
+    background: rgba(0,0,0,0.3) !important;
+    border-color: rgba(52,211,153,0.2) !important;
+    font-size: 12px !important;
+    padding: 6px 10px !important;
+    width: 200px !important;
+  }
+
+  .fetch-btn {
+    padding: 8px 18px;
+    border-radius: var(--radius-sm);
+    border: 1px solid rgba(52,211,153,0.4);
+    background: rgba(52,211,153,0.1);
+    color: var(--green);
+    font-family: 'Syne', sans-serif;
+    font-size: 12px; font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+    display: flex; align-items: center; gap: 5px;
+  }
+  .fetch-btn:hover { background: rgba(52,211,153,0.2); }
+  .fetch-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .publish-btn {
+    padding: 6px 14px;
+    border-radius: var(--radius-sm);
+    border: 1px solid rgba(52,211,153,0.4);
+    background: rgba(52,211,153,0.12);
+    color: var(--green);
+    font-size: 12px; font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: 'DM Sans', sans-serif;
+    display: flex; align-items: center; gap: 5px;
+  }
+  .publish-btn:hover { background: rgba(52,211,153,0.22); }
+  .publish-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+  .fetch-status {
+    font-size: 11px;
+    margin-top: 6px;
+    padding: 5px 10px;
+    border-radius: 6px;
+    display: none;
+  }
+  .fetch-status.success { background: rgba(52,211,153,0.1); color: var(--green); border: 1px solid rgba(52,211,153,0.2); }
+  .fetch-status.error { background: rgba(248,113,113,0.1); color: var(--red); border: 1px solid rgba(248,113,113,0.2); }
+
+  .wp-mode-section { display: none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="badge">Claude Opus · SERP Research · Competitor Analysis · Live WP Update</div>
+    <h1>SEO Content<br>Rewriter Agent</h1>
+    <p class="subtitle">Powered by Claude Opus — the most intelligent model. Researches your SERP, analyzes top competitors, then rewrites your page. Now with live WordPress publishing.</p>
+  </div>
+
+  <!-- API Key -->
+  <div class="api-row">
+    <span class="api-icon">🔑</span>
+    <span class="api-note">Enter your Anthropic API key to use this tool. It stays in your browser only.</span>
+    <input type="text" id="apiKey" class="api-input" placeholder="sk-ant-..." />
+  </div>
+
+  <!-- Mode Toggle -->
+  <div class="mode-toggle">
+    <button class="mode-btn active" id="modeRewrite" onclick="switchMode('rewrite')">✍️ Rewrite Content</button>
+    <button class="mode-btn" id="modeWP" onclick="switchMode('wp')">🌐 Fetch URL & Update Live Page</button>
+  </div>
+
+  <!-- WP Credentials (shown in WP mode) -->
+  <div class="wp-mode-section" id="wpSection">
+    <div class="wp-row">
+      <span class="wp-icon">🔐</span>
+      <span class="wp-note">WordPress credentials — stored in your browser only, never sent anywhere except your own site.</span>
+      <input type="text" id="wpSite" class="wp-input" placeholder="https://yoursite.com" />
+      <input type="text" id="wpUser" class="wp-input" placeholder="WP Username" />
+      <input type="password" id="wpPass" class="wp-input" placeholder="Application Password" />
+    </div>
+    <div style="margin-bottom:1rem; font-size:11px; color:var(--muted); padding:0 2px;">
+      💡 <strong style="color:var(--text);">How to get Application Password:</strong> WordPress Admin → Users → Your Profile → scroll to "Application Passwords" → create one called "SEO Tool"
+    </div>
+  </div>
+
+  <!-- Pipeline visual -->
+  <div class="pipeline">
+    <div class="pip-step" id="pip1">
+      <div class="pip-dot">1</div> SERP Research
+    </div>
+    <div class="pip-arrow">→</div>
+    <div class="pip-step" id="pip2">
+      <div class="pip-dot">2</div> Competitor Analysis
+    </div>
+    <div class="pip-arrow">→</div>
+    <div class="pip-step" id="pip3">
+      <div class="pip-dot">3</div> Gap Identification
+    </div>
+    <div class="pip-arrow">→</div>
+    <div class="pip-step" id="pip4">
+      <div class="pip-dot">4</div> Content Rewrite
+    </div>
+    <div class="pip-arrow">→</div>
+    <div class="pip-step" id="pip5">
+      <div class="pip-dot">5</div> Export
+    </div>
+  </div>
+
+  <!-- Step 1: URL -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-num">1</div>
+      <div class="card-title">Page URL & Focus Keyword</div>
+    </div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+      <input type="text" id="pageUrl" placeholder="https://yoursite.com/your-page" />
+      <input type="text" id="focusKeyword" placeholder="e.g. seo company in noida" />
+    </div>
+    <!-- Fetch from URL button (WP mode) -->
+    <div class="wp-mode-section" id="fetchRow" style="margin-top:10px; display:none;">
+      <button class="fetch-btn" id="fetchBtn" onclick="fetchPageContent()">
+        ⬇ Fetch Live Page Content
+      </button>
+      <div class="fetch-status" id="fetchStatus"></div>
+    </div>
+  </div>
+
+  <!-- Step 2: Current Content -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-num">2</div>
+      <div class="card-title">Current Page Content</div>
+      <span class="card-desc">Paste full page text</span>
+    </div>
+    <textarea id="pageContent" placeholder="Paste your full current page content here — hero, services, FAQs, CTAs, all sections. The agent will keep the exact same format and rewrite the copy based on SERP research."></textarea>
+  </div>
+
+  <!-- Step 3: New sections -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-num">3</div>
+      <div class="card-title">Add New Sections <span style="font-weight:400; color:var(--muted); font-size:12px;">(optional)</span></div>
+    </div>
+    <div class="sections-grid">
+      <div class="sec-chip" onclick="toggleChip(this)" data-val="Case Studies & Results">Case Studies & Results</div>
+      <div class="sec-chip" onclick="toggleChip(this)" data-val="Industries We Serve">Industries We Serve</div>
+      <div class="sec-chip" onclick="toggleChip(this)" data-val="Tools & Technologies We Use">Tools & Technologies</div>
+      <div class="sec-chip" onclick="toggleChip(this)" data-val="SEO vs PPC Comparison">SEO vs PPC</div>
+      <div class="sec-chip" onclick="toggleChip(this)" data-val="Client Testimonials">Testimonials</div>
+      <div class="sec-chip" onclick="toggleChip(this)" data-val="Awards & Certifications">Awards & Certs</div>
+      <div class="sec-chip" onclick="toggleChip(this)" data-val="Team & Expertise">Team & Expertise</div>
+      <div class="sec-chip" onclick="toggleChip(this)" data-val="ROI Calculator or Stats">ROI Stats</div>
+    </div>
+  </div>
+
+  <!-- Run -->
+  <button class="run-btn" id="runBtn" onclick="runAgent()">
+    ⚡ Research, Analyze & Rewrite
+  </button>
+
+  <!-- Progress -->
+  <div class="progress-wrap" id="progressWrap">
+    <div class="progress-bar-bg"><div class="progress-bar" id="progressBar"></div></div>
+    <div class="progress-steps">
+      <div class="prog-step" id="ps1"><div class="prog-dot"></div> Opus researching SERP patterns for your keyword...</div>
+      <div class="prog-step" id="ps2"><div class="prog-dot"></div> Opus analyzing top competitor content strategies...</div>
+      <div class="prog-step" id="ps3"><div class="prog-dot"></div> Opus identifying deep content gaps and opportunities...</div>
+      <div class="prog-step" id="ps4"><div class="prog-dot"></div> Opus rewriting your full page with research-backed intelligence...</div>
+      <div class="prog-step" id="ps5"><div class="prog-dot"></div> Formatting output and preparing .docx export...</div>
+    </div>
+  </div>
+
+  <!-- Output -->
+  <div class="output-section" id="outputSection">
+    <hr class="divider">
+    <div class="output-header">
+      <div class="output-title">✦ Rewritten Content</div>
+      <div class="output-actions">
+        <button class="action-btn" onclick="copyOutput()">⎘ Copy</button>
+        <button class="action-btn primary-action" onclick="downloadDocx()">↓ Download .docx</button>
+        <button class="publish-btn" id="publishBtn" onclick="publishToWP()" style="display:none;">🌐 Publish to WordPress</button>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('content', this)">Rewritten Page</button>
+      <button class="tab" onclick="switchTab('research', this)">SERP Research</button>
+      <button class="tab" onclick="switchTab('gaps', this)">Content Gaps</button>
+    </div>
+
+    <div id="tab-content">
+      <div class="output-box" id="outputBox"></div>
+    </div>
+    <div id="tab-research" style="display:none;">
+      <div class="research-box" id="researchBox"></div>
+    </div>
+    <div id="tab-gaps" style="display:none;">
+      <div class="research-box" id="gapsBox"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+let selectedSections = [];
+let finalContent = '';
+let researchData = '';
+let gapsData = '';
+let currentMode = 'rewrite';
+let wpPageId = null;
+
+function switchMode(mode) {
+  currentMode = mode;
+  document.getElementById('modeRewrite').classList.toggle('active', mode === 'rewrite');
+  document.getElementById('modeWP').classList.toggle('active', mode === 'wp');
+  // Show/hide WP-specific sections
+  document.querySelectorAll('.wp-mode-section').forEach(el => {
+    el.style.display = mode === 'wp' ? '' : 'none';
+  });
+  // fetchRow needs block-level display fix
+  if (mode === 'wp') {
+    document.getElementById('fetchRow').style.display = 'flex';
+    document.getElementById('fetchRow').style.flexDirection = 'column';
+    document.getElementById('fetchRow').style.gap = '6px';
+  }
+}
+
+async function fetchPageContent() {
+  const url = document.getElementById('pageUrl').value.trim();
+  const wpSite = document.getElementById('wpSite').value.trim();
+  const wpUser = document.getElementById('wpUser').value.trim();
+  const wpPass = document.getElementById('wpPass').value.trim();
+  const status = document.getElementById('fetchStatus');
+
+  if (!url) { alert('Please enter the page URL first.'); return; }
+
+  const btn = document.getElementById('fetchBtn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Fetching...';
+  status.style.display = 'none';
+
+  try {
+    // Try to detect post ID from URL via WP REST API
+    // First try to get the page by slug from the URL
+    const urlObj = new URL(url);
+    const slug = urlObj.pathname.replace(/\/$/, '').split('/').pop();
+    const siteBase = wpSite || urlObj.origin;
+
+    // Try pages endpoint first, then posts
+    let pageData = null;
+    const creds = btoa(`${wpUser}:${wpPass}`);
+    const headers = { 'Authorization': `Basic ${creds}` };
+
+    for (const endpoint of ['pages', 'posts']) {
+      const apiUrl = `${siteBase}/wp-json/wp/v2/${endpoint}?slug=${slug}&_fields=id,title,content,excerpt,slug,link`;
+      const res = await fetch(apiUrl, { headers });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.length > 0) {
+          pageData = data[0];
+          break;
+        }
+      }
+    }
+
+    if (!pageData) {
+      // Try searching without auth (public pages)
+      for (const endpoint of ['pages', 'posts']) {
+        const apiUrl = `${siteBase}/wp-json/wp/v2/${endpoint}?slug=${slug}&_fields=id,title,content,excerpt`;
+        const res = await fetch(apiUrl);
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.length > 0) {
+            pageData = data[0];
+            break;
+          }
+        }
+      }
+    }
+
+    if (!pageData) {
+      throw new Error(`Could not find page with slug "${slug}". Make sure the URL matches a WordPress page/post.`);
+    }
+
+    // Strip HTML tags from content for the textarea
+    wpPageId = pageData.id;
+    const rawHtml = pageData.content?.rendered || '';
+    const tmp = document.createElement('div');
+    tmp.innerHTML = rawHtml;
+    const plainText = tmp.innerText || tmp.textContent || '';
+
+    document.getElementById('pageContent').value = `PAGE TITLE: ${pageData.title?.rendered || ''}\n\n${plainText.trim()}`;
+
+    status.className = 'fetch-status success';
+    status.textContent = `✓ Fetched page ID ${wpPageId}: "${pageData.title?.rendered}" — ${plainText.length} characters loaded into editor below.`;
+    status.style.display = 'block';
+
+  } catch (err) {
+    status.className = 'fetch-status error';
+    status.textContent = '✗ ' + err.message;
+    status.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '⬇ Fetch Live Page Content';
+  }
+}
+
+async function publishToWP() {
+  if (!finalContent) return;
+  const wpSite = document.getElementById('wpSite').value.trim();
+  const wpUser = document.getElementById('wpUser').value.trim();
+  const wpPass = document.getElementById('wpPass').value.trim();
+  const url = document.getElementById('pageUrl').value.trim();
+
+  if (!wpSite || !wpUser || !wpPass) {
+    alert('Please fill in WordPress Site URL, Username, and Application Password in the WP credentials section above.');
+    return;
+  }
+  if (!wpPageId) {
+    alert('No page ID detected. Please use "Fetch Live Page Content" first so the tool knows which page to update.');
+    return;
+  }
+
+  const btn = document.getElementById('publishBtn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Publishing...';
+
+  try {
+    // Convert plain text content to basic HTML paragraphs
+    const htmlContent = finalContent
+      .split('\n\n')
+      .map(block => {
+        const trimmed = block.trim();
+        if (!trimmed) return '';
+        if (trimmed.startsWith('# ')) return `<h1>${trimmed.replace(/^# /, '')}</h1>`;
+        if (trimmed.startsWith('## ')) return `<h2>${trimmed.replace(/^## /, '')}</h2>`;
+        if (trimmed.startsWith('### ')) return `<h3>${trimmed.replace(/^### /, '')}</h3>`;
+        if (trimmed.startsWith('- ') || trimmed.startsWith('• ')) {
+          const items = trimmed.split('\n').filter(l => l.trim()).map(l => `<li>${l.replace(/^[-•]\s+/, '')}</li>`).join('');
+          return `<ul>${items}</ul>`;
+        }
+        return `<p>${trimmed.replace(/\n/g, '<br>')}</p>`;
+      })
+      .filter(Boolean)
+      .join('\n');
+
+    const siteBase = wpSite || new URL(url).origin;
+    const creds = btoa(`${wpUser}:${wpPass}`);
+
+    // Try pages first, then posts
+    let updated = false;
+    for (const endpoint of ['pages', 'posts']) {
+      const res = await fetch(`${siteBase}/wp-json/wp/v2/${endpoint}/${wpPageId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Basic ${creds}`
+        },
+        body: JSON.stringify({ content: htmlContent })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        updated = true;
+        btn.textContent = '✓ Published!';
+        btn.style.background = 'rgba(52,211,153,0.25)';
+        setTimeout(() => {
+          btn.textContent = '🌐 Publish to WordPress';
+          btn.disabled = false;
+          btn.style.background = '';
+        }, 3000);
+        break;
+      }
+    }
+
+    if (!updated) {
+      throw new Error('Could not update the page. Check that your Application Password has edit permissions.');
+    }
+
+  } catch (err) {
+    alert('Publish error: ' + err.message);
+    btn.textContent = '🌐 Publish to WordPress';
+    btn.disabled = false;
+  }
+}
+
+function toggleChip(el) {
+  el.classList.toggle('selected');
+  const val = el.getAttribute('data-val');
+  if (el.classList.contains('selected')) {
+    selectedSections.push(val);
+  } else {
+    selectedSections = selectedSections.filter(s => s !== val);
+  }
+}
+
+function switchTab(tab, btn) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('tab-content').style.display = tab === 'content' ? '' : 'none';
+  document.getElementById('tab-research').style.display = tab === 'research' ? '' : 'none';
+  document.getElementById('tab-gaps').style.display = tab === 'gaps' ? '' : 'none';
+}
+
+function setPipeline(step) {
+  for (let i = 1; i <= 5; i++) {
+    const el = document.getElementById('pip' + i);
+    el.classList.remove('active', 'done');
+    if (i < step) el.classList.add('done');
+    else if (i === step) el.classList.add('active');
+  }
+}
+
+function setProgress(stepNum) {
+  const pct = (stepNum / 5) * 100;
+  document.getElementById('progressBar').style.width = pct + '%';
+  for (let i = 1; i <= 5; i++) {
+    const el = document.getElementById('ps' + i);
+    el.classList.remove('active', 'done');
+    if (i < stepNum) el.classList.add('done');
+    else if (i === stepNum) el.classList.add('active');
+  }
+  setPipeline(stepNum);
+}
+
+async function callClaude(apiKey, system, userMsg, maxTokens = 2500) {
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify({
+      model: 'claude-opus-4-5',
+      max_tokens: maxTokens,
+      system: system,
+      messages: [{ role: 'user', content: userMsg }]
+    })
+  });
+  const data = await response.json();
+  if (data.error) throw new Error(data.error.message);
+  return data.content.map(b => b.text || '').join('');
+}
+
+async function runAgent() {
+  const apiKey = document.getElementById('apiKey').value.trim();
+  const keyword = document.getElementById('focusKeyword').value.trim();
+  const content = document.getElementById('pageContent').value.trim();
+  const url = document.getElementById('pageUrl').value.trim();
+
+  if (!apiKey) { alert('Please enter your Anthropic API key above.'); return; }
+  if (!keyword) { alert('Please enter a focus keyword.'); return; }
+  if (!content) { alert('Please paste your current page content.'); return; }
+
+  const btn = document.getElementById('runBtn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Running research pipeline...';
+
+  document.getElementById('progressWrap').style.display = 'block';
+  document.getElementById('outputSection').style.display = 'none';
+  finalContent = '';
+
+  try {
+    // ── STEP 1: SERP Research ───────────────────────────────────────────
+    setProgress(1);
+    const serpResult = await callClaude(apiKey,
+      `You are an expert SEO analyst with deep knowledge of Google SERP patterns for service-based businesses in India, particularly Noida/NCR. You have extensive knowledge of what top-ranking SEO company pages include.`,
+      `Analyze the SERP landscape for the keyword: "${keyword}"
+
+Based on your knowledge of what typically ranks on page 1 for this type of keyword, provide:
+
+1. WHAT TOP RANKING PAGES INCLUDE
+- Common page structures and sections
+- Types of content that Google rewards for this keyword
+- Average content depth (word count range)
+- Key themes and topics covered
+
+2. SEARCH INTENT ANALYSIS
+- Primary intent (commercial/informational/transactional)
+- What the searcher is trying to find or decide
+- Stage of buyer journey
+
+3. FEATURED SNIPPET OPPORTUNITIES
+- Question formats that trigger snippets
+- Format types (paragraph/list/table)
+
+4. SEMANTIC KEYWORDS & ENTITIES
+- Related terms Google expects to see
+- LSI keywords for this topic
+- Important entities to mention
+
+5. CONTENT GAPS TYPICALLY FOUND
+- What most pages miss that would differentiate
+
+Be specific and detailed. Format clearly with headers.`,
+      2500
+    );
+    researchData = serpResult;
+
+    // ── STEP 2: Competitor Analysis ─────────────────────────────────────
+    setProgress(2);
+    const competitorResult = await callClaude(apiKey,
+      `You are a senior SEO strategist specializing in competitive content analysis for digital marketing agencies in India. You think deeply, spot patterns others miss, and write analysis that directly shapes content strategy.`,
+      `For the keyword "${keyword}", analyze what the top 5 competing SEO company pages typically do:
+
+1. HEADLINE & VALUE PROPOSITION PATTERNS
+- What angles do top competitors use in their hero sections?
+- What unique selling propositions dominate?
+- What emotional triggers do they use?
+
+2. TRUST SIGNALS USED
+- What proof elements (years, clients, rankings, certifications) do winners use?
+- How do they structure social proof?
+- What specific numbers or stats appear most often?
+
+3. SERVICE SECTION PATTERNS
+- How do top pages structure their service offerings?
+- What depth of explanation wins?
+- What service names or framings stand out?
+
+4. CTA STRATEGY
+- What CTAs convert best for this keyword type?
+- Placement and wording patterns that appear on top pages
+- Free offers vs consultation vs audit CTAs
+
+5. FAQ PATTERNS
+- What questions do top-ranking pages answer?
+- How detailed are the winning answers?
+- What questions are being ignored (opportunity)?
+
+6. DIFFERENTIATORS
+- What makes the #1 ranking page stand out from #5?
+- What unique angles are NOT being used (whitespace)?
+
+7. CONTENT WEAKNESSES TO EXPLOIT
+- What are competitors doing poorly that you can do better?
+- Where is the content thin or generic?
+
+Be specific and detailed. This analysis directly informs the content rewrite.`,
+      2500
+    );
+
+    // ── STEP 3: Gap Analysis ─────────────────────────────────────────────
+    setProgress(3);
+    const gapResult = await callClaude(apiKey,
+      `You are an expert SEO content strategist with deep experience auditing and improving service pages for digital marketing agencies in India. You are brutally honest about content weaknesses.`,
+      `Perform a deep content gap analysis.
+
+KEYWORD: "${keyword}"
+PAGE URL: ${url || 'Not provided'}
+
+CURRENT PAGE CONTENT:
+${content.substring(0, 2500)}
+
+SERP RESEARCH:
+${serpResult.substring(0, 1200)}
+
+COMPETITOR ANALYSIS:
+${competitorResult.substring(0, 1200)}
+
+Identify with precision:
+
+1. CRITICAL MISSING SECTIONS — sections that top pages have but this page lacks entirely
+2. WEAK SECTIONS — existing sections that are thin, generic, or poorly written
+3. MISSED SEMANTIC KEYWORDS — important related terms not present in the current content
+4. TRUST & AUTHORITY GAPS — proof elements, stats, or credentials missing
+5. INTENT MISMATCH — places where the content doesn't match what the searcher actually wants
+6. CTA & CONVERSION GAPS — weak or missing conversion moments
+7. QUICK WINS — specific changes with the fastest ranking impact
+8. STRUCTURAL IMPROVEMENTS — format or layout changes that would help rankings
+
+For each gap, explain WHY it matters for rankings.`,
+      2000
+    );
+    gapsData = `SERP RESEARCH\n${'─'.repeat(50)}\n${serpResult}\n\nCOMPETITOR ANALYSIS\n${'─'.repeat(50)}\n${competitorResult}`;
+    document.getElementById('gapsBox').textContent = gapResult;
+    document.getElementById('researchBox').textContent = gapsData;
+
+    // ── STEP 4: Full Content Rewrite ─────────────────────────────────────
+    setProgress(4);
+    const newSections = selectedSections.length > 0
+      ? `\n\nADD THESE NEW SECTIONS using the same format/box style as existing sections:\n${selectedSections.map((s,i) => `${i+1}. ${s}`).join('\n')}`
+      : '';
+
+    const rewriteResult = await callClaude(apiKey,
+      `You are the world's best SEO content strategist and copywriter, specializing in service pages for digital marketing agencies in India. You have 15+ years of experience writing content that consistently ranks on page 1. You understand search intent deeply, write with authority, and produce content that both Google and real humans love. You never write generic AI-sounding copy — every line you write is specific, useful, and compelling.`,
+      `You are about to do the most important step: rewrite this SEO service page to outrank every competitor for "${keyword}".
+
+You have done the research. Now execute the rewrite with full intelligence and creativity.
+
+━━━ RESEARCH CONTEXT ━━━
+
+SERP INSIGHTS:
+${serpResult}
+
+COMPETITOR ANALYSIS:
+${competitorResult}
+
+CONTENT GAPS IDENTIFIED:
+${gapResult}
+
+━━━ CURRENT PAGE TO REWRITE ━━━
+
+KEYWORD: ${keyword}
+URL: ${url || 'Not provided'}
+
+${content}
+${newSections}
+
+━━━ REWRITING INSTRUCTIONS ━━━
+
+STRUCTURE:
+- Keep the EXACT same section order and format as the original
+- Every section that exists must remain — do not drop any
+- Add requested new sections in the same format/style
+- Keep meta title, meta description, all section headers
+
+COPY QUALITY:
+- Every headline must be benefit-driven, specific, and compelling — not generic
+- Subheadlines must earn their place — one strong insight per subheadline
+- Body copy: confident, direct, human — no corporate waffle
+- Bullet points: outcomes and benefits only, never vague features
+- Each service section must have a unique angle — no repeated structures
+
+SEO INTELLIGENCE:
+- Use "${keyword}" naturally — maximum 4 times across the entire page
+- Weave in semantic keywords and LSI terms from the SERP research naturally
+- Write FAQ answers that are genuinely helpful, 4-6 sentences each
+- Structure content so Google can extract featured snippets from FAQ answers
+- Use the competitor gaps to differentiate — say what others don't
+
+TRUST & CONVERSION:
+- Add specific trust signals (19+ years, 10,000+ keywords etc.) where relevant
+- Vary CTAs across sections — each CTA should feel unique and specific
+- Every section should move the reader closer to contacting Wildnet
+
+OUTPUT: Write the complete rewritten page from top to bottom. No summaries, no truncation — the full page.`,
+      12000
+    );
+    finalContent = rewriteResult;
+
+    // ── STEP 5: Done ─────────────────────────────────────────────────────
+    setProgress(5);
+    document.getElementById('outputBox').textContent = finalContent;
+    document.getElementById('outputSection').style.display = 'block';
+    document.getElementById('progressWrap').style.display = 'none';
+
+    // Show publish button if in WP mode
+    if (currentMode === 'wp') {
+      document.getElementById('publishBtn').style.display = 'flex';
+    }
+
+    btn.disabled = false;
+    btn.textContent = '⚡ Rewrite Again';
+
+  } catch (err) {
+    document.getElementById('progressWrap').style.display = 'none';
+    alert('Error: ' + err.message);
+    btn.disabled = false;
+    btn.textContent = '⚡ Research, Analyze & Rewrite';
+    setPipeline(1);
+  }
+}
+
+function copyOutput() {
+  navigator.clipboard.writeText(finalContent).then(() => {
+    const btn = event.target;
+    btn.textContent = '✓ Copied!';
+    setTimeout(() => btn.textContent = '⎘ Copy', 2000);
+  });
+}
+
+async function downloadDocx() {
+  if (!finalContent) return;
+  const btn = event.target;
+  btn.textContent = '⏳ Building...';
+  btn.disabled = true;
+
+  try {
+    const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, LevelFormat } = docx;
+
+    const lines = finalContent.split('\n');
+    const children = [];
+
+    const numbering = {
+      config: [
+        {
+          reference: 'bullets',
+          levels: [{
+            level: 0, format: LevelFormat.BULLET, text: '\u2022',
+            alignment: AlignmentType.LEFT,
+            style: { paragraph: { indent: { left: 720, hanging: 360 } } }
+          }]
+        }
+      ]
+    };
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed) {
+        children.push(new Paragraph({ children: [new TextRun('')], spacing: { after: 60 } }));
+        continue;
+      }
+
+      // Detect headings by common patterns
+      if (trimmed.startsWith('# ')) {
+        children.push(new Paragraph({
+          heading: HeadingLevel.HEADING_1,
+          children: [new TextRun({ text: trimmed.replace(/^# /, ''), bold: true })]
+        }));
+      } else if (trimmed.startsWith('## ')) {
+        children.push(new Paragraph({
+          heading: HeadingLevel.HEADING_2,
+          children: [new TextRun({ text: trimmed.replace(/^## /, ''), bold: true })]
+        }));
+      } else if (trimmed.startsWith('### ')) {
+        children.push(new Paragraph({
+          heading: HeadingLevel.HEADING_3,
+          children: [new TextRun({ text: trimmed.replace(/^### /, '') })]
+        }));
+      } else if (trimmed.match(/^[-•*]\s+/)) {
+        children.push(new Paragraph({
+          numbering: { reference: 'bullets', level: 0 },
+          children: [new TextRun({ text: trimmed.replace(/^[-•*]\s+/, '') })]
+        }));
+      } else if (trimmed.match(/^\d+\.\s+[A-Z]/)) {
+        // numbered section headers
+        children.push(new Paragraph({
+          heading: HeadingLevel.HEADING_2,
+          children: [new TextRun({ text: trimmed, bold: true })]
+        }));
+      } else if (trimmed.match(/^[A-Z\s&]+$/) && trimmed.length > 5 && trimmed.length < 60) {
+        // ALL CAPS lines = section headers
+        children.push(new Paragraph({
+          heading: HeadingLevel.HEADING_1,
+          children: [new TextRun({ text: trimmed })]
+        }));
+      } else if (trimmed.startsWith('**') && trimmed.endsWith('**')) {
+        children.push(new Paragraph({
+          children: [new TextRun({ text: trimmed.replace(/\*\*/g, ''), bold: true })],
+          spacing: { before: 120, after: 60 }
+        }));
+      } else {
+        // Smart bold detection for inline **text**
+        const parts = trimmed.split(/(\*\*[^*]+\*\*)/g);
+        const runs = parts.map(p => {
+          if (p.startsWith('**') && p.endsWith('**')) {
+            return new TextRun({ text: p.replace(/\*\*/g, ''), bold: true });
+          }
+          return new TextRun({ text: p });
+        });
+        children.push(new Paragraph({ children: runs, spacing: { after: 80 } }));
+      }
+    }
+
+    const keyword = document.getElementById('focusKeyword').value.trim();
+    const url = document.getElementById('pageUrl').value.trim();
+
+    children.unshift(
+      new Paragraph({
+        heading: HeadingLevel.HEADING_1,
+        children: [new TextRun('SEO Page Rewrite — ' + (keyword || 'Content'))]
+      }),
+      new Paragraph({
+        children: [
+          new TextRun({ text: 'URL: ', bold: true }),
+          new TextRun(url || 'Not provided')
+        ],
+        spacing: { after: 60 }
+      }),
+      new Paragraph({
+        children: [
+          new TextRun({ text: 'Keyword: ', bold: true }),
+          new TextRun(keyword || 'Not provided')
+        ],
+        spacing: { after: 360 }
+      })
+    );
+
+    const doc = new Document({
+      numbering,
+      styles: {
+        default: { document: { run: { font: 'Calibri', size: 24 } } },
+        paragraphStyles: [
+          {
+            id: 'Heading1', name: 'Heading 1', basedOn: 'Normal', next: 'Normal', quickFormat: true,
+            run: { size: 36, bold: true, font: 'Calibri', color: '2563EB' },
+            paragraph: { spacing: { before: 360, after: 180 }, outlineLevel: 0 }
+          },
+          {
+            id: 'Heading2', name: 'Heading 2', basedOn: 'Normal', next: 'Normal', quickFormat: true,
+            run: { size: 28, bold: true, font: 'Calibri', color: '1E40AF' },
+            paragraph: { spacing: { before: 240, after: 120 }, outlineLevel: 1 }
+          },
+          {
+            id: 'Heading3', name: 'Heading 3', basedOn: 'Normal', next: 'Normal', quickFormat: true,
+            run: { size: 24, bold: true, font: 'Calibri', color: '1D4ED8' },
+            paragraph: { spacing: { before: 180, after: 90 }, outlineLevel: 2 }
+          }
+        ]
+      },
+      sections: [{
+        properties: {
+          page: {
+            size: { width: 12240, height: 15840 },
+            margin: { top: 1440, right: 1440, bottom: 1440, left: 1440 }
+          }
+        },
+        children
+      }]
+    });
+
+    const buffer = await Packer.toBuffer(doc);
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'seo-page-rewrite.docx';
+    link.click();
+    URL.revokeObjectURL(link.href);
+
+    btn.textContent = '✓ Downloaded!';
+    setTimeout(() => {
+      btn.textContent = '↓ Download .docx';
+      btn.disabled = false;
+    }, 2000);
+  } catch (err) {
+    alert('Download error: ' + err.message);
+    btn.textContent = '↓ Download .docx';
+    btn.disabled = false;
+  }
+}
+</script>
+</body>
+</html>
