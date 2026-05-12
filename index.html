@@ -6,7 +6,17 @@
 <title>SEO Content Rewriter — Wildnet</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/docx/8.5.0/docx.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/docx/7.8.2/docx.umd.min.js"></script>
+<script>
+// Fallback if CDN fails
+window.addEventListener('load', () => {
+  if (typeof docx === 'undefined') {
+    const s = document.createElement('script');
+    s.src = 'https://unpkg.com/docx@7.8.2/build/index.umd.js';
+    document.head.appendChild(s);
+  }
+});
+</script>
 <style>
   :root {
     --bg: #0d0d0f;
@@ -432,6 +442,12 @@
     <p class="subtitle">Powered by Claude Opus — the most intelligent model. Researches your SERP, analyzes top competitors, then rewrites your page. Now with live WordPress publishing.</p>
   </div>
 
+  <!-- Version Banner -->
+  <div style="background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.3);border-radius:8px;padding:8px 16px;margin-bottom:1.5rem;display:flex;align-items:center;justify-content:space-between;font-size:12px;">
+    <span style="color:var(--green);font-weight:700;">✅ VERSION 4.0 — Auto WP Publish · Proofread Before Live · HTML Output · docx Fixed</span>
+    <span style="color:var(--muted);font-family:monospace;">Built: 12 May 2026</span>
+  </div>
+
   <!-- API Key -->
   <div class="api-row">
     <span class="api-icon">🔑</span>
@@ -439,24 +455,15 @@
     <input type="text" id="apiKey" class="api-input" placeholder="sk-ant-..." />
   </div>
 
-  <!-- Mode Toggle -->
-  <div class="mode-toggle">
-    <button class="mode-btn active" id="modeRewrite" onclick="switchMode('rewrite')">✍️ Rewrite Content</button>
-    <button class="mode-btn" id="modeWP" onclick="switchMode('wp')">🌐 Fetch URL & Update Live Page</button>
+  <!-- Pipeline visual -->
+    <span class="wp-icon">🔐</span>
+    <span class="wp-note">WordPress (optional — fill to enable live publish)</span>
+    <input type="text" id="wpSite" class="wp-input" placeholder="https://yoursite.com" />
+    <input type="text" id="wpUser" class="wp-input" placeholder="WP Username" />
+    <input type="password" id="wpPass" class="wp-input" placeholder="Application Password" />
   </div>
-
-  <!-- WP Credentials (shown in WP mode) -->
-  <div class="wp-mode-section" id="wpSection">
-    <div class="wp-row">
-      <span class="wp-icon">🔐</span>
-      <span class="wp-note">WordPress credentials — stored in your browser only, never sent anywhere except your own site.</span>
-      <input type="text" id="wpSite" class="wp-input" placeholder="https://yoursite.com" />
-      <input type="text" id="wpUser" class="wp-input" placeholder="WP Username" />
-      <input type="password" id="wpPass" class="wp-input" placeholder="Application Password" />
-    </div>
-    <div style="margin-bottom:1rem; font-size:11px; color:var(--muted); padding:0 2px;">
-      💡 <strong style="color:var(--text);">How to get Application Password:</strong> WordPress Admin → Users → Your Profile → scroll to "Application Passwords" → create one called "SEO Tool"
-    </div>
+  <div style="margin-bottom:1rem; font-size:11px; color:var(--muted); padding:0 2px;">
+    💡 <strong style="color:var(--text);">Application Password:</strong> WP Admin → Users → Your Profile → Application Passwords → create one called "SEO Tool"
   </div>
 
   <!-- Pipeline visual -->
@@ -492,10 +499,10 @@
       <input type="text" id="pageUrl" placeholder="https://yoursite.com/your-page" />
       <input type="text" id="focusKeyword" placeholder="e.g. seo company in noida" />
     </div>
-    <!-- Fetch from URL button (WP mode) -->
-    <div class="wp-mode-section" id="fetchRow" style="margin-top:10px; display:none;">
+    <!-- Fetch from URL button -->
+    <div id="fetchRow" style="margin-top:10px;display:flex;flex-direction:column;gap:6px;">
       <button class="fetch-btn" id="fetchBtn" onclick="fetchPageContent()">
-        ⬇ Fetch Live Page Content
+        ⬇ Fetch Live Page Content from WordPress
       </button>
       <div class="fetch-status" id="fetchStatus"></div>
     </div>
@@ -586,24 +593,7 @@ let selectedSections = [];
 let finalContent = '';
 let researchData = '';
 let gapsData = '';
-let currentMode = 'rewrite';
 let wpPageId = null;
-
-function switchMode(mode) {
-  currentMode = mode;
-  document.getElementById('modeRewrite').classList.toggle('active', mode === 'rewrite');
-  document.getElementById('modeWP').classList.toggle('active', mode === 'wp');
-  // Show/hide WP-specific sections
-  document.querySelectorAll('.wp-mode-section').forEach(el => {
-    el.style.display = mode === 'wp' ? '' : 'none';
-  });
-  // fetchRow needs block-level display fix
-  if (mode === 'wp') {
-    document.getElementById('fetchRow').style.display = 'flex';
-    document.getElementById('fetchRow').style.flexDirection = 'column';
-    document.getElementById('fetchRow').style.gap = '6px';
-  }
-}
 
 async function fetchPageContent() {
   const url = document.getElementById('pageUrl').value.trim();
